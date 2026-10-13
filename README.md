@@ -1,6 +1,6 @@
 # bankwizz
 
-A React and TypeScript frontend for the bankwizz API. The frontend is designed to work with compatible backend implementations written in any language.
+A React and TypeScript frontend designed to work with compatible backend Banking API implementations.
 
 ## Run locally
 
@@ -11,10 +11,10 @@ Start a compatible banking API on `http://localhost:8080`. Follow the build and 
 In a second terminal:
 
 ```powershell
-cd Z:\GIT\react-banking-app
+cd react-banking-app
 npm run dev
 ```
-
+d
 Open the URL printed by Vite, normally `http://127.0.0.1:5173`. The frontend proxies `/api` to `http://localhost:8080`, so local development needs no API CORS change. Run one backend implementation on that port at a time.
 
 ## Customer and account flow
