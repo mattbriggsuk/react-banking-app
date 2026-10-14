@@ -43,7 +43,7 @@ async function signIn(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('PIN'), pin)
   await user.click(screen.getByRole('button', { name: /Continue to accounts/ }))
   await screen.findByRole('heading', { name: /Hello, Alex/ })
-  await waitFor(() => expect(screen.getByRole('button', { name: /Open Account/ })).toBeEnabled())
+  await waitFor(() => expect(screen.getByRole('button', { name: 'New Account' })).toBeEnabled())
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 }
 
@@ -82,15 +82,33 @@ describe('customer and banking workflows', () => {
     expect(screen.queryByText(pin)).not.toBeInTheDocument()
   })
 
-  it('opens an account using the selected API type and displays the returned type', async () => {
-    const fetchMock = mockApi(); const user = userEvent.setup(); render(<App />); await signIn(user)
-    await user.click(screen.getByRole('button', { name: /Open Account/ }))
+  it.each([
+    { scenario: 'no accounts', initialAccounts: [] },
+    { scenario: 'an open account', initialAccounts: [source] },
+    { scenario: 'a closed account', initialAccounts: [{ ...source, closed: true }] },
+  ])('opens an account from the header with $scenario using the selected API type', async ({ initialAccounts }) => {
+    const fetchMock = mockApi(initialAccounts); const user = userEvent.setup(); render(<App />); await signIn(user)
+    const headerButtons = within(screen.getByRole('banner')).getAllByRole('button')
+    expect(headerButtons[0]).toHaveAccessibleName('New Account')
+    expect(headerButtons[1]).toHaveAccessibleName('Logout')
+    const emptyBanner = screen.queryByRole('heading', { name: 'Make room for what’s next.' })
+    if (initialAccounts.length === 0) expect(emptyBanner).toBeInTheDocument()
+    else {
+      expect(emptyBanner).not.toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: /Current account/ }))
+    }
+    await user.click(screen.getByRole('button', { name: 'New Account' }))
+    expect(screen.getByRole('button', { name: 'New Account' })).toBeVisible()
     await user.click(screen.getByRole('radio', { name: /Savings/ }))
     await user.click(screen.getByRole('button', { name: /Open savings account/ }))
     await screen.findByRole('heading', { name: 'Savings account' })
     const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/account/create'))!
     expect(JSON.parse(String(call[1]?.body))).toEqual({ accountType: 'SAVINGS' })
     expect(screen.getByRole('status')).toHaveTextContent('opened')
+    await waitFor(() => expect(screen.getByRole('button', { name: /All accounts/ })).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: /All accounts/ }))
+    expect(screen.queryByRole('heading', { name: 'Make room for what’s next.' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'New Account' })).toBeEnabled()
   })
 
   it.each(['Deposit', 'Withdraw'] as const)('sends %s with the correct transaction enum and exact decimal amount', async action => {

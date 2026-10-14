@@ -20,6 +20,22 @@ function BankIcon() {
   return <svg width="25" height="25" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 9 9-6 9 6M4 21h16M6 11v7m6-7v7m6-7v7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
 }
 
+type IconName = 'deposit' | 'withdraw' | 'transfer' | 'close' | 'refresh' | 'arrow' | 'chip' | 'contactless'
+
+function InterfaceIcon({ name }: { name: IconName }) {
+  const paths: Record<IconName, string> = {
+    deposit: 'M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5',
+    withdraw: 'M12 15V3m-4 4 4-4 4 4M5 16v5h14v-5',
+    transfer: 'M4 8h16m-4-4 4 4-4 4M20 16H4m4-4-4 4 4 4',
+    close: 'm6 6 12 12M6 18 18 6',
+    refresh: 'M20 7v5h-5M4 17v-5h5M6 6a8 8 0 0 1 14 6M4 12a8 8 0 0 0 14 6',
+    arrow: 'M5 12h14m-5-5 5 5-5 5',
+    chip: 'M4 4h16v16H4ZM4 9h5V4m0 16v-5H4m16-6h-5V4m0 16v-5h5M9 9h6v6H9Z',
+    contactless: 'M8 9a5 5 0 0 1 0 6m4-9a10 10 0 0 1 0 12m4-15a15 15 0 0 1 0 18',
+  }
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d={paths[name]} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+}
+
 export default function App() {
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [mode, setMode] = useState<'existing' | 'new'>('existing')
@@ -148,29 +164,32 @@ export default function App() {
     <header className="site-header">
       <a className="brand" href="/" onClick={event => { event.preventDefault(); if (!busy) { setSelectedNumber(null); setPanel(null); clearFeedback() } }} aria-label="bankwizz home"><span className="brand-icon"><BankIcon /></span>bank<span className="brand-accent">wizz</span></a>
       <span className="header-caption">Banking for brilliant minds.</span>
-      {customer && <button className="button ghost" disabled={busy} onClick={async () => {
+      {customer && <div className="header-actions">
+      <button className="button primary" disabled={busy} onClick={() => showPanel('open')}><span aria-hidden="true">＋</span> New Account</button>
+      <button className="button ghost" disabled={busy} onClick={async () => {
         setBusy(true)
         try { await api.logout() } catch { /* Clear local credentials even when the API is unavailable. */ }
         finally { resetCustomer(); clearFeedback(); setBusy(false) }
-      }}>Logout <span aria-hidden="true">↗</span></button>}
+      }}>Logout <span aria-hidden="true">↗</span></button>
+      </div>}
     </header>
     <div className="app-body">
     <div className="app-scroll">
     {!customer ? <main className="welcome-layout">
       <section className="welcome-copy">
-        <span className="eyebrow">YOUR MONEY. YOUR NEXT CHAPTER.</span>
-        <h1>A little simpler.<br />A lot more <em>you.</em></h1>
+        <span className="eyebrow welcome-eyebrow">YOUR MONEY. YOUR NEXT CHAPTER.</span>
+        <h1>Smarter banking.<br />Built for <em>developers.</em></h1>
         <p>Start with a customer profile. Your accounts and everyday banking are just a few steps away.</p>
         <div className="welcome-illustration" aria-hidden="true">
           <div className="illustration-orbit" />
-          <div className="illustration-card"><BankIcon /><span>Room for what’s next.</span><div className="card-lines"><i /><i /><i /><i /></div><strong>bank<span className="brand-accent">wizz</span></strong></div>
+          <div className="illustration-card"><div className="illustration-card-top"><BankIcon /><InterfaceIcon name="contactless" /></div><span>Room for what’s next.</span><div className="card-lines"><InterfaceIcon name="chip" /><i /><i /><i /><i /></div><strong>bank<span className="brand-accent">wizz</span></strong></div>
           <span className="illustration-tag">A fresh start <span>↗</span></span>
         </div>
       </section>
       <section className="customer-card" aria-labelledby="customer-heading">
         <span className="eyebrow">LET’S GET STARTED</span>
         <h2 id="customer-heading">Welcome to bank<span className="brand-accent">wizz</span></h2>
-        <p>Create a profile or find your existing customer.</p>
+        <p>Login or sign up as a new customer</p>
         <div className="segmented" aria-label="Customer options">
           <button aria-pressed={mode === 'existing'} disabled={busy} onClick={() => { setMode('existing'); clearFeedback() }}>Existing customer</button>
           <button aria-pressed={mode === 'new'} disabled={busy} onClick={() => { setMode('new'); clearFeedback() }}>New customer</button>
@@ -193,10 +212,9 @@ export default function App() {
             </>}
             </div>
             </div>
-            <button type="submit" className="button primary full-width">{busy ? 'Please wait…' : mode === 'new' ? 'Create customer' : 'Continue to accounts'} <span aria-hidden="true">→</span></button>
+            <button type="submit" className="button primary full-width">{busy ? 'Please wait…' : mode === 'new' ? 'Create customer' : 'Continue to accounts'} <InterfaceIcon name="arrow" /></button>
           </fieldset>
         </form>
-        <p className="card-footnote">One customer profile. All your accounts together.</p>
       </section>
     </main> : <main className="dashboard">
       <section className="dashboard-heading">
@@ -212,14 +230,14 @@ export default function App() {
           <div className="detail-balance"><span>Account balance</span><strong>{formatMoney(selected.balance)}</strong></div>
         </section>
         {selected.closed ? <div className="empty-state"><h3>This account is closed.</h3><p>You can still view its details or open a new account.</p></div> : <div className="action-grid">
-          {(['deposit', 'withdraw', 'transfer', 'close'] as const).map(action => <button key={action} className={`action-button ${action === 'close' ? 'danger-text' : ''}`} aria-pressed={panel === action} disabled={busy || (Number(selected.balance) === 0 && (action === 'withdraw' || action === 'transfer'))} onClick={() => showPanel(action)}><span aria-hidden="true">{{ deposit: '↓', withdraw: '↑', transfer: '⇄', close: '×' }[action]}</span>{titles[action]}</button>)}
+          {(['deposit', 'withdraw', 'transfer', 'close'] as const).map(action => <button key={action} className={`action-button ${action === 'close' ? 'danger-text' : ''}`} aria-pressed={panel === action} disabled={busy || (Number(selected.balance) === 0 && (action === 'withdraw' || action === 'transfer'))} onClick={() => showPanel(action)}><span className="action-icon"><InterfaceIcon name={action} /></span>{titles[action]}</button>)}
         </div>}
         </>}
       </> : <>
         {panel !== 'open' && <section className="overview"><div><span className="eyebrow">TOTAL BALANCE</span><strong>{formatMoney(openAccounts.reduce((sum, account) => sum + Number(account.balance), 0))}</strong><span>Across {openAccounts.length} open {openAccounts.length === 1 ? 'account' : 'accounts'}</span></div><div className="overview-decoration" aria-hidden="true"><BankIcon /></div></section>}
         {panel !== 'open' && accounts.length > 0 && <>
-        <div className="section-heading"><h2>Your accounts <span className="count">{accounts.length}</span></h2><button className="button ghost" disabled={busy} onClick={async () => { setBusy(true); clearFeedback(); await refresh(customer); setBusy(false) }}>{busy ? 'Loading…' : 'Refresh'} <span aria-hidden="true">↻</span></button></div>
-        <div className="accounts-grid">{accounts.map(account => <button className={`account-card ${account.closed ? 'is-closed' : ''}`} disabled={busy} key={account.accountNumber} onClick={() => { setSelectedNumber(account.accountNumber); setPanel(null); clearFeedback() }}>
+        <div className="section-heading"><h2>Your accounts <span className="count">{accounts.length}</span></h2><button className="button ghost" disabled={busy} onClick={async () => { setBusy(true); clearFeedback(); await refresh(customer); setBusy(false) }}>{busy ? 'Loading…' : 'Refresh'} <InterfaceIcon name="refresh" /></button></div>
+        <div className="accounts-grid">{accounts.map(account => <button className={`account-card ${account.closed ? 'is-closed' : ''}`} data-account-type={account.accountType} disabled={busy} key={account.accountNumber} onClick={() => { setSelectedNumber(account.accountNumber); setPanel(null); clearFeedback() }}>
           <div className="account-card-top"><span className="account-icon" aria-hidden="true"><BankIcon /></span><span className="badge">{account.closed ? 'Closed' : 'Open'}</span></div><h3>{accountTitle(account)}</h3><span className="number">{formatNumber(account.accountNumber)}</span><div className="account-card-bottom"><div><small>Balance</small><strong>{formatMoney(account.balance)}</strong></div><span className="card-arrow" aria-hidden="true">↗</span></div>
         </button>)}</div>
         </>}
@@ -245,10 +263,10 @@ export default function App() {
             </>}
             <label>Amount (£)<input value={amount} onChange={event => setAmount(event.target.value)} inputMode="decimal" placeholder="0.00" required autoFocus /></label>
           </>}
-          <button className={`button ${panel === 'close' ? 'danger' : 'primary'}`} type="submit" disabled={panel === 'close' && Number(selected!.balance) !== 0}>{busy ? 'Please wait…' : panel === 'close' ? 'Confirm close account' : panel === 'open' ? `Open ${accountType.toLowerCase()} account` : `Confirm ${panel}`} <span aria-hidden="true">→</span></button>
+          <button className={`button ${panel === 'close' ? 'danger' : 'primary'}`} type="submit" disabled={panel === 'close' && Number(selected!.balance) !== 0}>{busy ? 'Please wait…' : panel === 'close' ? 'Confirm close account' : panel === 'open' ? `Open ${accountType.toLowerCase()} account` : `Confirm ${panel}`} <InterfaceIcon name="arrow" /></button>
         </fieldset></form>
       </section>}
-      {!selected && panel !== 'open' && <section className="open-account-footer"><div><h3>Make room for what’s next.</h3><p>An account for every part of your life.</p></div><button className="button primary" disabled={busy} onClick={() => showPanel('open')}><span aria-hidden="true">＋</span> Open Account</button></section>}
+      {accounts.length === 0 && !selected && panel !== 'open' && <section className="open-account-footer"><div><h3>Make room for what’s next.</h3><p>An account for every part of your life.</p></div><button className="button primary" disabled={busy} onClick={() => showPanel('open')}><span aria-hidden="true">＋</span> Open Account</button></section>}
     </main>}
     </div>
     </div>
