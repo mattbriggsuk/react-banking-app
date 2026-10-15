@@ -1,6 +1,8 @@
-# bankwizz
+# bankingWizz
 
 A React and TypeScript frontend designed to work with compatible backend Banking API implementations.
+
+<img width="1276" height="863" alt="image" src="https://github.com/user-attachments/assets/3d1acbdc-1ada-49a4-8143-66823f2dcd07" />
 
 ## Run locally
 
